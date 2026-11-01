@@ -3396,7 +3396,7 @@ int32_t field::is_player_can_discard_deck_as_cost(uint8_t playerid, uint32_t cou
 		return TRUE;
 	card* topcard = player[playerid].list_main.back();
 	if((count == 1) && topcard->is_position(POS_FACEUP))
-		return topcard->is_capable_cost_to_grave(playerid);
+		return topcard->is_capable_cost_to_grave(playerid, core.reason_effect);
 	bool cant_remove_s = !is_player_can_action(playerid, EFFECT_CANNOT_REMOVE);
 	bool cant_remove_o = !is_player_can_action(1 - playerid, EFFECT_CANNOT_REMOVE);
 	effect_set eset;
