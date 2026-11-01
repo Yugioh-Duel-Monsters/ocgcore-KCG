@@ -3697,7 +3697,8 @@ int32_t field::is_player_can_send_to_grave(uint8_t playerid, card* pcard, uint32
 		pduel->lua->add_param<LuaParam::CARD>(pcard);
 		pduel->lua->add_param<LuaParam::INT>(playerid);
 		pduel->lua->add_param<LuaParam::INT>(reason);
-		if (pduel->lua->check_condition(peff->target, 4))
+		pduel->lua->add_param<LuaParam::EFFECT>(reason_effect);
+		if (pduel->lua->check_condition(peff->target, 5))
 			return FALSE;
 	}
 	return TRUE;
