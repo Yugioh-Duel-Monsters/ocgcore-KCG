@@ -4256,7 +4256,8 @@ LUA_STATIC_FUNCTION(IsPlayerCanRelease) {
 		check_param_count(L, 2);
 		auto pcard = lua_get<card*, true>(L, 2);
 		const auto reason = lua_get<uint32_t, REASON_COST>(L, 3);
-		lua_pushboolean(L, pduel->game_field->is_player_can_release(playerid, pcard, reason));
+		const auto reason_effect = lua_get<effect*>(L, 4);
+		lua_pushboolean(L, pduel->game_field->is_player_can_release(playerid, pcard, reason, reason_effect));
 	}
 	return 1;
 }
@@ -4272,8 +4273,9 @@ LUA_STATIC_FUNCTION(IsPlayerCanRemove) {
 	else {
 		check_param_count(L, 2);
 		auto pcard = lua_get<card*, true>(L, 2);
-		auto reason = lua_get<uint32_t, REASON_EFFECT>(L, 3);
-		lua_pushboolean(L, pduel->game_field->is_player_can_remove(playerid, pcard, reason));
+		const auto reason = lua_get<uint32_t, REASON_EFFECT>(L, 3);
+		const auto reason_effect = lua_get<effect*>(L, 4);
+		lua_pushboolean(L, pduel->game_field->is_player_can_remove(playerid, pcard, reason, reason_effect));
 	}
 	return 1;
 }
@@ -4289,7 +4291,9 @@ LUA_STATIC_FUNCTION(IsPlayerCanSendtoHand) {
 	else {
 		check_param_count(L, 2);
 		auto pcard = lua_get<card*, true>(L, 2);
-		lua_pushboolean(L, pduel->game_field->is_player_can_send_to_hand(playerid, pcard));
+		const auto reason = lua_get<uint32_t, REASON_EFFECT>(L, 3);
+		const auto reason_effect = lua_get<effect*>(L, 4);
+		lua_pushboolean(L, pduel->game_field->is_player_can_send_to_hand(playerid, pcard, reason, reason_effect));
 	}
 	return 1;
 }
@@ -4305,8 +4309,9 @@ LUA_STATIC_FUNCTION(IsPlayerCanSendtoGrave) {
 	else {
 		check_param_count(L, 2);
 		auto pcard = lua_get<card*, true>(L, 2);
-		auto reason = lua_get<uint32_t, REASON_EFFECT>(L, 3);
-		lua_pushboolean(L, pduel->game_field->is_player_can_send_to_grave(playerid, pcard, reason));
+		const auto reason = lua_get<uint32_t, REASON_EFFECT>(L, 3);
+		const auto reason_effect = lua_get<effect*>(L, 4);
+		lua_pushboolean(L, pduel->game_field->is_player_can_send_to_grave(playerid, pcard, reason, reason_effect));
 	}
 	return 1;
 }
@@ -4322,7 +4327,9 @@ LUA_STATIC_FUNCTION(IsPlayerCanSendtoDeck) {
 	else {
 		check_param_count(L, 2);
 		auto pcard = lua_get<card*, true>(L, 2);
-		lua_pushboolean(L, pduel->game_field->is_player_can_send_to_deck(playerid, pcard));
+		const auto reason = lua_get<uint32_t, REASON_EFFECT>(L, 3);
+		const auto reason_effect = lua_get<effect*>(L, 4);
+		lua_pushboolean(L, pduel->game_field->is_player_can_send_to_deck(playerid, pcard, reason, reason_effect));
 	}
 	return 1;
 }
