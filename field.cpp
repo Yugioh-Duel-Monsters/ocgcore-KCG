@@ -3427,8 +3427,7 @@ int32_t field::is_player_can_discard_hand(uint8_t playerid, card* pcard, effect*
 		pduel->lua->add_param<LuaParam::CARD>(pcard);
 		pduel->lua->add_param<LuaParam::EFFECT>(peffect);
 		pduel->lua->add_param<LuaParam::INT>(reason);
-		pduel->lua->add_param<LuaParam::EFFECT>(reason_effect);
-		if (pduel->lua->check_condition(peff->target, 5))
+		if (pduel->lua->check_condition(peff->target, 4))
 			return FALSE;
 	}
 	return TRUE;
