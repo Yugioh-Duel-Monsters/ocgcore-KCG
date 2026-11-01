@@ -422,7 +422,7 @@ bool field::move_card(uint8_t playerid, card* pcard, uint8_t location, uint8_t s
 			}
 		} else {
 			if((pcard->data.type & TYPE_PENDULUM) && (location == LOCATION_GRAVE)
-			        && pcard->is_capable_send_to_extra(playerid)
+			        && pcard->is_capable_send_to_extra(playerid, pcard->current.reason, pcard->current.reason_effect)
 					///kdiy//////
 			        // && (((pcard->current.location == LOCATION_MZONE) && !pcard->is_status(STATUS_SUMMON_DISABLED))
 			        // || ((pcard->current.location == LOCATION_SZONE) && !pcard->is_status(STATUS_ACTIVATE_DISABLED)))) {
@@ -2635,7 +2635,7 @@ void field::get_ritual_material(uint8_t playerid, effect* peffect, card_set* mat
 		if((pcard->data.type & TYPE_MONSTER) && pcard->is_releasable_by_nonsummon(playerid, REASON_EFFECT))
 			material->insert(pcard);
 	for(auto& pcard : player[playerid].list_grave)
-		if((pcard->data.type & TYPE_MONSTER) && pcard->is_affected_by_effect(EFFECT_EXTRA_RITUAL_MATERIAL) && pcard->is_removeable(playerid, POS_FACEUP, REASON_EFFECT))
+		if((pcard->data.type & TYPE_MONSTER) && pcard->is_affected_by_effect(EFFECT_EXTRA_RITUAL_MATERIAL) && pcard->is_removeable(playerid, POS_FACEUP, REASON_EFFECT, peffect))
 			material->insert(pcard);
 	for(auto& pcard : player[playerid].list_main)
 		if(pcard->is_affected_by_effect(EFFECT_EXTRA_RITUAL_MATERIAL)
@@ -3427,7 +3427,8 @@ int32_t field::is_player_can_discard_hand(uint8_t playerid, card* pcard, effect*
 		pduel->lua->add_param<LuaParam::CARD>(pcard);
 		pduel->lua->add_param<LuaParam::EFFECT>(peffect);
 		pduel->lua->add_param<LuaParam::INT>(reason);
-		if (pduel->lua->check_condition(peff->target, 4))
+		pduel->lua->add_param<LuaParam::EFFECT>(reason_effect);
+		if (pduel->lua->check_condition(peff->target, 5))
 			return FALSE;
 	}
 	return TRUE;
@@ -3604,7 +3605,7 @@ int32_t field::is_player_can_spsummon_monster(uint8_t playerid, uint8_t toplayer
 	temp_card->data = {};
 	return result;
 }
-int32_t field::is_player_can_release(uint8_t playerid, card* pcard, uint32_t reason) {
+int32_t field::is_player_can_release(uint8_t playerid, card* pcard, uint32_t reason, effect* reason_effect) {
 	effect_set eset;
 	filter_player_effect(playerid, EFFECT_CANNOT_RELEASE, &eset);
 	for(const auto& peff : eset) {
@@ -3614,7 +3615,7 @@ int32_t field::is_player_can_release(uint8_t playerid, card* pcard, uint32_t rea
 		pduel->lua->add_param<LuaParam::CARD>(pcard);
 		pduel->lua->add_param<LuaParam::INT>(playerid);
 		pduel->lua->add_param<LuaParam::INT>(reason);
-		pduel->lua->add_param<LuaParam::EFFECT>(core.reason_effect);
+		pduel->lua->add_param<LuaParam::EFFECT>(reason_effect);
 		if (pduel->lua->check_condition(peff->target, 5))
 			return FALSE;
 	}
@@ -3686,7 +3687,7 @@ int32_t field::is_player_can_remove_overlay_card(uint8_t playerid, group* pgroup
 	}
 	return FALSE;
 }
-int32_t field::is_player_can_send_to_grave(uint8_t playerid, card* pcard, uint32_t reason) {
+int32_t field::is_player_can_send_to_grave(uint8_t playerid, card* pcard, uint32_t reason, effect* reason_effect) {
 	effect_set eset;
 	filter_player_effect(playerid, EFFECT_CANNOT_TO_GRAVE, &eset);
 	for(const auto& peff : eset) {
@@ -3701,7 +3702,7 @@ int32_t field::is_player_can_send_to_grave(uint8_t playerid, card* pcard, uint32
 	}
 	return TRUE;
 }
-int32_t field::is_player_can_send_to_hand(uint8_t playerid, card* pcard) {
+int32_t field::is_player_can_send_to_hand(uint8_t playerid, card* pcard, uint32_t reason, effect* reason_effect) {
 	effect_set eset;
 	filter_player_effect(playerid, EFFECT_CANNOT_TO_HAND, &eset);
 	for(const auto& peff : eset) {
@@ -3710,15 +3711,16 @@ int32_t field::is_player_can_send_to_hand(uint8_t playerid, card* pcard) {
 		pduel->lua->add_param<LuaParam::EFFECT>(peff);
 		pduel->lua->add_param<LuaParam::CARD>(pcard);
 		pduel->lua->add_param<LuaParam::INT>(playerid);
-		pduel->lua->add_param<LuaParam::EFFECT>(core.reason_effect);
-		if(pduel->lua->check_condition(peff->target, 4))
+		pduel->lua->add_param<LuaParam::EFFECT>(reason_effect);
+		pduel->lua->add_param<LuaParam::INT>(reason);
+		if(pduel->lua->check_condition(peff->target, 5))
 			return FALSE;
 	}
-	if(pcard->is_extra_deck_monster() && !is_player_can_send_to_deck(playerid, pcard))
+	if(pcard->is_extra_deck_monster() && !is_player_can_send_to_deck(playerid, pcard, reason, reason_effect))
 		return FALSE;
 	return TRUE;
 }
-int32_t field::is_player_can_send_to_deck(uint8_t playerid, card* pcard) {
+int32_t field::is_player_can_send_to_deck(uint8_t playerid, card* pcard, uint32_t reason, effect* reason_effect) {
 	effect_set eset;
 	filter_player_effect(playerid, EFFECT_CANNOT_TO_DECK, &eset);
 	for(const auto& peff : eset) {
@@ -3727,12 +3729,14 @@ int32_t field::is_player_can_send_to_deck(uint8_t playerid, card* pcard) {
 		pduel->lua->add_param<LuaParam::EFFECT>(peff);
 		pduel->lua->add_param<LuaParam::CARD>(pcard);
 		pduel->lua->add_param<LuaParam::INT>(playerid);
-		if(pduel->lua->check_condition(peff->target, 3))
+		pduel->lua->add_param<LuaParam::EFFECT>(reason_effect);
+		pduel->lua->add_param<LuaParam::INT>(reason);
+		if(pduel->lua->check_condition(peff->target, 5))
 			return FALSE;
 	}
 	return TRUE;
 }
-int32_t field::is_player_can_remove(uint8_t playerid, card* pcard, uint32_t reason) {
+int32_t field::is_player_can_remove(uint8_t playerid, card* pcard, uint32_t reason, effect* reason_effect) {
 	effect_set eset;
 	filter_player_effect(playerid, EFFECT_CANNOT_REMOVE, &eset);
 	for(const auto& peff : eset) {
@@ -3742,7 +3746,7 @@ int32_t field::is_player_can_remove(uint8_t playerid, card* pcard, uint32_t reas
 		pduel->lua->add_param<LuaParam::CARD>(pcard);
 		pduel->lua->add_param<LuaParam::INT>(playerid);
 		pduel->lua->add_param<LuaParam::INT>(reason);
-		pduel->lua->add_param<LuaParam::EFFECT>(core.reason_effect);
+		pduel->lua->add_param<LuaParam::EFFECT>(reason_effect);
 		if(pduel->lua->check_condition(peff->target, 5))
 			return FALSE;
 	}
