@@ -2998,11 +2998,11 @@ int32_t card::destination_redirect(uint8_t destination, uint32_t reason) {
 	for(const auto& peff : es) {
 		pduel->lua->add_param<LuaParam::INT>(reason);
 		redirect = peff->get_value(this, 1);
-		if((redirect & LOCATION_HAND) && !is_affected_by_effect(EFFECT_CANNOT_TO_HAND) && pduel->game_field->is_player_can_send_to_hand(peff->get_handler_player(), this))
+		if((redirect & LOCATION_HAND) && !is_affected_by_effect(EFFECT_CANNOT_TO_HAND) && pduel->game_field->is_player_can_send_to_hand(peff->get_handler_player(), this, REASON_EFFECT, peff))
 			return redirect;
-		if((redirect & LOCATION_DECK) && !is_affected_by_effect(EFFECT_CANNOT_TO_DECK) && pduel->game_field->is_player_can_send_to_deck(peff->get_handler_player(), this))
+		if((redirect & LOCATION_DECK) && !is_affected_by_effect(EFFECT_CANNOT_TO_DECK) && pduel->game_field->is_player_can_send_to_deck(peff->get_handler_player(), this, REASON_EFFECT, peff))
 			return redirect;
-		if((redirect & LOCATION_REMOVED) && !is_affected_by_effect(EFFECT_CANNOT_REMOVE) && pduel->game_field->is_player_can_remove(peff->get_handler_player(), this, REASON_EFFECT))
+		if((redirect & LOCATION_REMOVED) && !is_affected_by_effect(EFFECT_CANNOT_REMOVE) && pduel->game_field->is_player_can_remove(peff->get_handler_player(), this, REASON_EFFECT, peff))
 			return redirect;
 		if((redirect & LOCATION_GRAVE) && !is_affected_by_effect(EFFECT_CANNOT_TO_GRAVE) && pduel->game_field->is_player_can_send_to_grave(peff->get_handler_player(), this, REASON_EFFECT, peff))
 			return redirect;
@@ -4651,7 +4651,7 @@ int32_t card::is_capable_cost_to_extra(uint8_t playerid, effect* reason_effect) 
 		return FALSE;
 	if(is_affected_by_effect(EFFECT_CANNOT_USE_AS_COST))
 		return FALSE;
-	if(!is_capable_send_to_deck(playerid))
+	if(!is_capable_send_to_deck(playerid, REASON_COST, reason_effect))
 		return FALSE;
 	auto op_param = sendto_param;
 	sendto_param.location = dest;
