@@ -4565,7 +4565,7 @@ int32_t card::is_capable_send_to_extra(uint8_t playerid, uint32_t reason, effect
 		return FALSE;
 	if(is_affected_by_effect(EFFECT_CANNOT_TO_DECK))
 		return FALSE;
-	if(!pduel->game_field->is_player_can_send_to_deck(playerid, this))
+	if(!pduel->game_field->is_player_can_send_to_deck(playerid, this, reason, reason_effect))
 		return FALSE;
 	return TRUE;
 }
