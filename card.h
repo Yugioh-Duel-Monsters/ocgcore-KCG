@@ -35,9 +35,14 @@ struct card_state {
 	uint32_t code2{};
 	std::set<uint16_t> setcodes;
 	uint32_t type{};
-	uint32_t level{};
-	uint32_t rank{};
-	uint32_t link{};
+	/////////kdiy/////////
+	//uint32_t level;
+    int32_t level;
+	int32_t rank;
+	//uint32_t rank;
+	//uint32_t link;
+	int32_t link;
+	/////////kdiy/////////
 	uint32_t link_marker{};
 	uint32_t lscale{};
 	uint32_t rscale{};
@@ -95,6 +100,11 @@ public:
 		void addcard(card* pcard);
 		uint32_t findcard(card* pcard);
 	};
+
+    ///////////kdiy//////////////
+	uint32_t set_entity_code(uint32_t entity_code);
+    ///////////kdiy//////////////
+
 	struct sendto_param_t {
 		void set(uint8_t p, uint8_t pos, uint8_t loc, uint8_t seq = 0) {
 			playerid = p;
@@ -116,6 +126,9 @@ public:
 	card_data data{};
 	card_state previous{};
 	card_state temp{};
+	//kdiy////
+	card_state prev_temp{};
+	//kdiy////
 	card_state current{};
 	uint8_t owner{ PLAYER_NONE };
 	struct summon_info {
@@ -199,6 +212,11 @@ public:
 	loc_info get_info_location();
 	uint32_t second_code(uint32_t code);
 	uint32_t get_code();
+	//////kdiy/////
+	uint32_t get_ocode();
+	uint32_t get_codealias();
+	uint32_t get_codealias2();
+	//////kdiy/////
 	uint32_t get_another_code();
 	void get_summon_code(std::set<uint32_t>& codes, card* scard = nullptr, uint64_t sumtype = 0, uint8_t playerid = 2);
 	void get_set_card(std::set<uint16_t>& setcodes);
@@ -210,12 +228,20 @@ public:
 	int32_t get_attack();
 	int32_t get_base_defense();
 	int32_t get_defense();
-	uint32_t get_level();
-	uint32_t get_rank();
-	uint32_t get_link();
-	uint32_t get_synchro_level(card* pcard);
-	uint32_t get_ritual_level(card* pcard);
-	uint32_t check_xyz_level(card* pcard, uint32_t lv);
+	///////kdiy//////////
+	// uint32_t get_level();
+	// uint32_t get_rank();
+	// uint32_t get_link();
+	// uint32_t get_synchro_level(card* pcard);
+	// uint32_t get_ritual_level(card* pcard);
+	// uint32_t check_xyz_level(card* pcard, uint32_t lv);
+	int32_t get_level();
+	int32_t get_rank();
+	int32_t get_link();
+	int32_t get_synchro_level(card* pcard);
+	int32_t get_ritual_level(card* pcard);
+	uint32_t check_xyz_level(card* pcard, int32_t lv);
+	///////kdiy//////////
 	uint32_t get_attribute(card* scard = nullptr, uint64_t sumtype = 0, uint8_t playerid = 2);
 	uint64_t get_race(card* scard = nullptr, uint64_t sumtype = 0, uint8_t playerid = 2);
 	uint32_t get_lscale();
@@ -266,7 +292,11 @@ public:
 	void remove_effect(effect* peffect);
 	void remove_effect(effect* peffect, effect_container::iterator it);
 	int32_t copy_effect(uint32_t code, uint32_t reset, uint32_t count);
-	int32_t replace_effect(uint32_t code, uint32_t reset, uint32_t count, bool recreating = false);
+	/////kdiy//////////
+	//int32_t replace_effect(uint32_t code, uint32_t reset, uint32_t count, bool recreating = false);
+	int32_t replace_effect(uint32_t code, uint32_t reset, uint32_t count, bool recreating = false, card* target = nullptr);
+	void revert_entity(effect* peffect);
+	/////kdiy//////////
 	void reset(uint32_t id, uint32_t reset_type);
 	void reset_effect_count();
 	void refresh_disable_status();
@@ -307,6 +337,9 @@ public:
 	void filter_spsummon_procedure_g(uint8_t playerid, effect_set* eset);
 	effect* is_affected_by_effect(int32_t code);
 	effect* is_affected_by_effect(int32_t code, card* target);
+	/////kdiy//////////
+	bool is_affected_by_ultimate_disableeffect();
+	/////kdiy//////////
 	void get_card_effect(uint32_t code, effect_set* eset);
 	void get_own_effects(effect_set* eset);
 	int32_t fusion_check(group* fusion_m, group* cg, uint64_t chkf);
@@ -379,6 +412,9 @@ public:
 #define SUMMON_TYPE_XYZ      0x49000000
 #define SUMMON_TYPE_PENDULUM 0x4a000000
 #define SUMMON_TYPE_LINK     0x4c000000
+////kdiy//////////
+#define SUMMON_TYPE_MAXIMUM  0x4e000000
+////kdiy//////////
 //Counter
 #define COUNTER_WITHOUT_PERMIT 0x1000
 #define COUNTER_NEED_ENABLE    0x2000
