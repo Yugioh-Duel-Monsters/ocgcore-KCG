@@ -128,8 +128,13 @@ struct SelectPosition : public Process<true> {
 	uint8_t playerid;
 	uint8_t positions;
 	uint32_t code;
-	SelectPosition(uint16_t step_, uint8_t playerid_, uint32_t code_, uint8_t positions_) :
-		Process(step_), playerid(playerid_), positions(positions_), code(code_) {}
+	////kdiy////
+	// SelectPosition(uint16_t step_, uint8_t playerid_, uint32_t code_, uint8_t positions_) :
+		// Process(step_), playerid(playerid_), positions(positions_), code(code_) {}
+	card* pcard;
+	SelectPosition(uint16_t step_, uint8_t playerid_, uint32_t code_, uint8_t positions_, card* pcard_) :
+		Process(step_), playerid(playerid_), positions(positions_), code(code_), pcard(pcard_) {}
+	////kdiy////
 };
 struct SelectTributeP : public Process<true> {
 	uint8_t playerid;
@@ -367,13 +372,19 @@ struct MoveToField : public Process<false> {
 	bool enable;
 	uint8_t ret;
 	bool pzone;
-	uint8_t zone;
+    //////kdiy///////
+	//uint8_t zone;
+	uint32_t zone;
+    //////kdiy///////
 	bool rule;
 	LOCATION_REASON location_reason;
 	bool confirm;
 	card* target;
 	MoveToField(uint16_t step_, card* target_, bool enable_, uint8_t ret_, bool pzone_,
-						 uint8_t zone_, bool rule_, LOCATION_REASON location_reason_, bool confirm_) :
+                         //////kdiy///////
+						 //uint8_t zone_, bool rule_, LOCATION_REASON location_reason_, bool confirm_) :
+                         uint32_t zone_, bool rule_, LOCATION_REASON location_reason_, bool confirm_) :
+                         //////kdiy///////
 		Process(step_), enable(enable_), ret(ret_) , pzone(pzone_) , zone(zone_) , rule(rule_) ,
 		location_reason(location_reason_) , confirm(confirm_), target(target_) {}
 };
