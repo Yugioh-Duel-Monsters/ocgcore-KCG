@@ -30,7 +30,11 @@ struct card_data {
 	uint32_t alias{};
 	std::set<uint16_t> setcodes;
 	uint32_t type{};
-	uint32_t level{};
+	///////kdiy///////
+	//uint32_t level{};
+	int32_t level{};
+	uint32_t piccode{0};
+	///////kdiy///////
 	uint32_t attribute{};
 	uint64_t race{};
 	int32_t attack{};
@@ -38,6 +42,15 @@ struct card_data {
 	uint32_t lscale{};
 	uint32_t rscale{};
 	uint32_t link_marker{};
+	///////kdiy///////
+	uint32_t ot{};
+	uint32_t realcode{0};
+	uint32_t realalias{0};
+    uint32_t effcode{0};
+    uint32_t namecode{0};
+    card* realcard{nullptr};
+	bool nreal{false};
+	///////kdiy///////
 	card_data(const OCG_CardData& data);
 	card_data() = default;
 };
@@ -71,6 +84,9 @@ public:
 	std::unordered_set<effect*> uncopy;
 
 	std::unordered_map<uint32_t, card_data> data_cache;
+	/////zdiy/////
+	std::unordered_map<uint32_t, std::vector<void*>*>* cards_data;
+	/////zdiy/////
 	
 	duel() = delete;
 	explicit duel(const OCG_DuelOptions& options, bool& valid_lua_lib);
