@@ -77,7 +77,10 @@ void OCG_DuelNewCard(OCG_Duel ocg_duel, const OCG_NewCardInfo* info_ptr) {
 				game_field.adjust_instant();
 			}
 			if(info.loc & LOCATION_ONFIELD) {
-				if(info.loc == LOCATION_MZONE)
+				/////////kdiy////////
+				//if(info.loc == LOCATION_MZONE)
+				if(info.loc == (LOCATION_MZONE | LOCATION_SZONE))
+				/////////kdiy////////
 					pcard->set_status(STATUS_PROC_COMPLETE, TRUE);
 			}
 		}
