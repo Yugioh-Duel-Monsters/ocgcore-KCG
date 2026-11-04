@@ -35,7 +35,23 @@
 #define TRUE 1
 #define FALSE 0
 
-//Symbolic locations
+//Locations
+//////kdiy//////
+#define CARDDATA_PICCODE		1
+#define CARDDATA_ALIAS			2
+#define CARDDATA_SETCODE		3
+#define CARDDATA_TYPE			4
+#define CARDDATA_LEVEL			5
+#define CARDDATA_ATTRIBUTE		6
+#define CARDDATA_RACE			7
+#define CARDDATA_ATTACK			8
+#define CARDDATA_DEFENSE		9
+#define CARDDATA_LSCALE			10
+#define CARDDATA_RSCALE			11
+#define CARDDATA_LINK_MARKER	12
+
+#define LOCATION_RMZONE   0x2000
+#define LOCATION_RSZONE   0x4000
 #define LOCATION_FZONE   0x100
 #define LOCATION_PZONE   0x200
 #define LOCATION_STZONE  0x400
@@ -54,6 +70,25 @@
 
 //Flip effect flags
 #define NO_FLIP_EFFECT     0x10000
+
+/////kdiy/////////////
+#define SCOPE_OCG        0x1
+#define SCOPE_TCG        0x2
+#define SCOPE_ANIME      0x4
+#define SCOPE_ILLEGAL    0x8
+#define SCOPE_VIDEO_GAME 0x10
+#define SCOPE_CUSTOM     0x20
+#define SCOPE_SPEED      0x40
+#define SCOPE_PRERELEASE 0x100
+#define SCOPE_RUSH       0x200
+#define SCOPE_LEGEND     0x400
+#define SCOPE_HIDDEN     0x1000
+/////zdiy/////
+#define SCOPE_ZCG     0x2000
+/////zdiy/////
+#define SCOPE_OCG_TCG    (SCOPE_OCG | SCOPE_TCG)
+#define SCOPE_OFFICIAL   (SCOPE_OCG | SCOPE_TCG | SCOPE_PRERELEASE)
+/////kdiy/////////////
 
 //Players
 #define PLAYER_SELFDES  5
