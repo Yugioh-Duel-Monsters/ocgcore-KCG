@@ -47,7 +47,10 @@ int32_t effect::is_available() {
 	if ((type & (EFFECT_TYPE_SINGLE | EFFECT_TYPE_XMATERIAL)) && !(type & EFFECT_TYPE_FIELD)) {
 		card* phandler = get_handler();
 		card* powner = get_owner();
-		if (phandler->current.controler == PLAYER_NONE && code != EFFECT_ADD_SETCODE && code != EFFECT_ADD_CODE && code != EFFECT_REVIVE_LIMIT)
+		////kdiy/////////
+		//if (phandler->current.controler == PLAYER_NONE && code != EFFECT_ADD_SETCODE && code != EFFECT_ADD_CODE && code != EFFECT_REVIVE_LIMIT)
+		if (phandler->current.controler == PLAYER_NONE && code != EFFECT_ADD_SETCODE && code != EFFECT_ADD_CODE && code != EFFECT_REVIVE_LIMIT && code != EFFECT_ORICA_SZONE && code != EFFECT_SANCT_MZONE)
+		////kdiy/////////
 			return FALSE;
 		if(!is_in_range_of_symbolic_mzone(phandler))
 			return FALSE;
@@ -108,10 +111,20 @@ int32_t effect::is_available() {
 				return FALSE;
 		}
 	}
-	if (!condition)
+	///kdiy/////////
+	//if (!condition)
+	if (!condition && (!oscondition 
+	|| (oscondition == 1 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_MZONE && !handler->is_affected_by_effect(EFFECT_SANCT_MZONE)) || handler->is_affected_by_effect(EFFECT_ORICA_SZONE)))
+	|| (oscondition == 2 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_SZONE && !handler->is_affected_by_effect(EFFECT_ORICA_SZONE)) || handler->is_affected_by_effect(EFFECT_SANCT_MZONE)))))
+	///kdiy/////////
 		return TRUE;
 	pduel->lua->add_param<LuaParam::EFFECT>(this);
-	int32_t res = pduel->lua->check_condition(condition, 1);
+	///kdiy/////////
+	//int32_t res = pduel->lua->check_condition(condition, 1);
+	int32_t res = pduel->lua->check_condition(condition, 1) && (!oscondition 
+	|| (oscondition == 1 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_MZONE && !handler->is_affected_by_effect(EFFECT_SANCT_MZONE)) || handler->is_affected_by_effect(EFFECT_ORICA_SZONE)))
+	|| (oscondition == 2 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_SZONE && !handler->is_affected_by_effect(EFFECT_ORICA_SZONE)) || handler->is_affected_by_effect(EFFECT_SANCT_MZONE))));
+	///kdiy/////////
 	if(res) {
 		if(!(status & EFFECT_STATUS_AVAILABLE))
 			id = pduel->game_field->infos.field_id++;
@@ -142,7 +155,10 @@ int32_t effect::check_count_limit(uint8_t playerid) const {
 }
 // check if an EFFECT_TYPE_ACTIONS effect can be activated
 // for triggering effects, it checks EFFECT_FLAG_DAMAGE_STEP, EFFECT_FLAG_SET_AVAILABLE
-int32_t effect::is_activateable(uint8_t playerid, const tevent& e, int32_t neglect_cond, int32_t neglect_cost, int32_t neglect_target, int32_t neglect_loc, int32_t neglect_faceup) {
+////kdiy//////////
+// int32_t effect::is_activateable(uint8_t playerid, const tevent& e, int32_t neglect_cond, int32_t neglect_cost, int32_t neglect_target, int32_t neglect_loc, int32_t neglect_faceup) {
+int32_t effect::is_activateable(uint8_t playerid, const tevent& e, int32_t neglect_cond, int32_t neglect_cost, int32_t neglect_target, int32_t neglect_loc, int32_t neglect_faceup, int32_t darkness) {
+////kdiy//////////
 	if(!(type & EFFECT_TYPE_ACTIONS))
 		return FALSE;
 	if(!check_count_limit(playerid))
@@ -175,13 +191,46 @@ int32_t effect::is_activateable(uint8_t playerid, const tevent& e, int32_t negle
 					return FALSE;
 			}
 			// additional check for each location
-			if(handler->current.location == LOCATION_SZONE) {
+			////////kdiy/////////
+			//if(handler->current.location == LOCATION_SZONE) {
+			if((handler->current.location == LOCATION_SZONE && !handler->is_affected_by_effect(EFFECT_ORICA_SZONE)) || (handler->current.location == LOCATION_MZONE && handler->is_affected_by_effect(EFFECT_SANCT_MZONE))) {
+			////////kdiy/////////
 				if(handler->is_position(POS_FACEUP))
 					return FALSE;
 				if(handler->equiping_target)
 					return FALSE;
-				if(!(handler->data.type & (TYPE_FIELD | TYPE_PENDULUM)) && is_flag(EFFECT_FLAG_LIMIT_ZONE) && !(zone & (1u << handler->current.sequence)))
+				////////kdiy/////////
+				//if(!(handler->data.type & (TYPE_FIELD | TYPE_PENDULUM)) && is_flag(EFFECT_FLAG_LIMIT_ZONE) && !(zone & (1u << handler->current.sequence)))
+				if(!(handler->data.type & (TYPE_FIELD | TYPE_PENDULUM)) && is_flag(EFFECT_FLAG_LINK_MAGIC) && pduel->game_field->is_player_affected_by_effect(playerid, EFFECT_SANCT)) {
+					zone = pduel->game_field->get_linked_zone(playerid);
+					uint32_t zone2 = 0xff;
+					if(handler->current.location == LOCATION_MZONE)
+				    	zone2 = zone & 0xff;
+					if(handler->current.location == LOCATION_SZONE)
+				    	zone2 = (zone & 0xff00) >> 8;
+					if(!(zone2 & (1u << handler->current.sequence)))
+						return FALSE;
+				} else if(!(handler->data.type & (TYPE_FIELD | TYPE_PENDULUM)) && is_flag(EFFECT_FLAG_LIMIT_ZONE) && !(zone & (1u << handler->current.sequence)))
+				////////kdiy/////////
 					return FALSE;
+			////////kdiy/////////
+			} else if(!(handler->data.type & (TYPE_FIELD | TYPE_PENDULUM)) && is_flag(EFFECT_FLAG_LINK_MAGIC) && pduel->game_field->is_player_affected_by_effect(playerid, EFFECT_SANCT)) {
+				zone = pduel->game_field->get_linked_zone(playerid);
+				if((zone & 0xff) != 0 && (zone & 0xff00) != 0) {
+					uint32_t zone2 = (zone & 0xff00) >> 8;
+					zone = zone & 0x1f;
+					if (pduel->game_field->get_useable_count(handler, playerid, LOCATION_MZONE, playerid, LOCATION_REASON::TOFIELD, zone) <= 0 && pduel->game_field->get_useable_count(handler, playerid, LOCATION_SZONE, playerid, LOCATION_REASON::TOFIELD, zone2) <= 0)
+						return FALSE;
+				} else if(zone & 0xff00) {
+					uint32_t zone2 = (zone & 0xff00) >> 8;
+					if (pduel->game_field->get_useable_count(handler, playerid, LOCATION_SZONE, playerid, LOCATION_REASON::TOFIELD, zone2) <= 0)
+						return FALSE;
+				} else {
+					zone = zone & 0x1f;
+					if (pduel->game_field->get_useable_count(handler, playerid, LOCATION_MZONE, playerid, LOCATION_REASON::TOFIELD, zone) <= 0)
+						return FALSE;
+				}
+			////////kdiy/////////
 			} else {
 				if(!(((handler->data.type & TYPE_FIELD) && (!is_flag(EFFECT_FLAG_LIMIT_ZONE) && value<=0)) || (!is_flag(EFFECT_FLAG_LIMIT_ZONE) && (value & LOCATION_FZONE)) || (!is_flag(EFFECT_FLAG_LIMIT_ZONE) && (value & LOCATION_HAND)))) {
 					if (!is_flag(EFFECT_FLAG_LIMIT_ZONE) && (value & LOCATION_MZONE)) {
@@ -208,7 +257,10 @@ int32_t effect::is_activateable(uint8_t playerid, const tevent& e, int32_t negle
 					else
 						return FALSE;
 				}
-			} else if(handler->current.location == LOCATION_SZONE) {
+			////////kdiy/////////
+			//} else if(handler->current.location == LOCATION_SZONE) {
+			} else if((handler->current.location == LOCATION_SZONE && !handler->is_affected_by_effect(EFFECT_ORICA_SZONE)) || (handler->current.location == LOCATION_MZONE && handler->is_affected_by_effect(EFFECT_SANCT_MZONE))) {
+			////////kdiy/////////
 				if((handler->data.type & TYPE_TRAP) && handler->get_status(STATUS_SET_TURN))
 					ecode = EFFECT_TRAP_ACT_IN_SET_TURN;
 				if((handler->data.type & TYPE_SPELL) && (handler->data.type & TYPE_QUICKPLAY || handler->is_affected_by_effect(EFFECT_BECOME_QUICK)) && handler->get_status(STATUS_SET_TURN))
@@ -295,6 +347,21 @@ int32_t effect::is_activateable(uint8_t playerid, const tevent& e, int32_t negle
 	int32_t result = TRUE;
 	if(!(type & EFFECT_TYPE_CONTINUOUS))
 		result = is_action_check(playerid);
+	////kdiy//////////
+	card* phandler = get_handler();
+	if(darkness) {
+		if(result) {
+			if((((phandler->current.location == LOCATION_SZONE && !phandler->is_affected_by_effect(EFFECT_ORICA_SZONE)) || (phandler->current.location == LOCATION_MZONE && phandler->is_affected_by_effect(EFFECT_SANCT_MZONE))) && (phandler->current.position & POS_FACEDOWN) != 0) && phandler->is_affected_by_effect(EFFECT_DARKNESS_HIDE))
+				result = TRUE;
+			else
+				result = FALSE;
+		}
+		pduel->game_field->core.reason_effect = oreason;
+		pduel->game_field->core.reason_player = op;
+		pduel->game_field->restore_lp_cost();
+		return result;
+	}
+	////kdiy//////////
 	if(result)
 		result = is_activate_ready(playerid, e, neglect_cond, neglect_cost, neglect_target);
 	pduel->game_field->core.reason_effect = oreason;
@@ -333,6 +400,12 @@ int32_t effect::is_activate_ready(effect* reason_effect, uint8_t playerid, const
 	if(!is_in_range_of_symbolic_mzone(reason_effect->get_handler())) {
 		return FALSE;
 	}
+    ///kdiy/////////
+	if(!(!oscondition 
+	|| (oscondition == 1 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_MZONE && !handler->is_affected_by_effect(EFFECT_SANCT_MZONE)) || handler->is_affected_by_effect(EFFECT_ORICA_SZONE)))
+	|| (oscondition == 2 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_SZONE && !handler->is_affected_by_effect(EFFECT_ORICA_SZONE)) || handler->is_affected_by_effect(EFFECT_SANCT_MZONE)))))
+	    return FALSE;
+	///kdiy/////////
 	if(!neglect_cond && condition) {
 		pduel->lua->add_param<LuaParam::EFFECT>(reason_effect);
 		pduel->lua->add_param<LuaParam::INT>(playerid);
@@ -386,7 +459,12 @@ int32_t effect::is_condition_check(uint8_t playerid, const tevent& e) {
 		return FALSE;
 	if(!is_in_range_of_symbolic_mzone(phandler))
 		return FALSE;
-	if(!condition)
+	///kdiy/////////	
+	//if(!condition)
+	if(!condition && (!oscondition 
+	|| (oscondition == 1 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_MZONE && !handler->is_affected_by_effect(EFFECT_SANCT_MZONE)) || handler->is_affected_by_effect(EFFECT_ORICA_SZONE)))
+	|| (oscondition == 2 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_SZONE && !handler->is_affected_by_effect(EFFECT_ORICA_SZONE)) || handler->is_affected_by_effect(EFFECT_SANCT_MZONE)))))
+	///kdiy/////////
 		return TRUE;
 	effect* oreason = pduel->game_field->core.reason_effect;
 	uint8_t op = pduel->game_field->core.reason_player;
@@ -401,7 +479,12 @@ int32_t effect::is_condition_check(uint8_t playerid, const tevent& e) {
 	pduel->lua->add_param<LuaParam::EFFECT>(e.reason_effect );
 	pduel->lua->add_param<LuaParam::INT>(e.reason);
 	pduel->lua->add_param<LuaParam::INT>(e.reason_player);
-	if(!pduel->lua->check_condition(condition, 8)) {
+	///kdiy/////////
+	//if(!pduel->lua->check_condition(condition, 8)) {
+	if(!(pduel->lua->check_condition(condition, 8) && (!oscondition 
+	|| (oscondition == 1 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_MZONE && !handler->is_affected_by_effect(EFFECT_SANCT_MZONE)) || handler->is_affected_by_effect(EFFECT_ORICA_SZONE)))
+	|| (oscondition == 2 && (!(handler->current.location & LOCATION_ONFIELD) || (handler->current.location == LOCATION_SZONE && !handler->is_affected_by_effect(EFFECT_ORICA_SZONE)) || handler->is_affected_by_effect(EFFECT_SANCT_MZONE)))))) {
+	///kdiy/////////
 		pduel->game_field->restore_lp_cost();
 		pduel->game_field->core.reason_effect = oreason;
 		pduel->game_field->core.reason_player = op;
@@ -441,21 +524,47 @@ int32_t effect::is_target(card* pcard) {
 		if(is_flag(EFFECT_FLAG_SPSUM_PARAM))
 			return FALSE;
 		if(is_flag(EFFECT_FLAG_ABSOLUTE_TARGET)) {
+			////////kdiy//////
+			// if(pcard->current.controler == 0) {
+			// 	if(!pcard->current.is_location(s_range))
+			// 		return FALSE;
+			// } else {
+			// 	if(!pcard->current.is_location(o_range))
+			// 		return FALSE;
+			// }
 			if(pcard->current.controler == 0) {
-				if(!pcard->current.is_location(s_range))
-					return FALSE;
+				if(!((pcard->is_affected_by_effect(EFFECT_ORICA_SZONE) && (s_range & LOCATION_MZONE) && (pcard->current.is_location(s_range | LOCATION_SZONE))) 
+				|| (pcard->is_affected_by_effect(EFFECT_SANCT_MZONE) && (s_range & LOCATION_SZONE) && (pcard->current.is_location(s_range | LOCATION_MZONE)))
+				|| (!pcard->is_affected_by_effect(EFFECT_ORICA_SZONE) && !pcard->is_affected_by_effect(EFFECT_SANCT_MZONE) && pcard->current.is_location(s_range))))
+				   return FALSE;
 			} else {
-				if(!pcard->current.is_location(o_range))
-					return FALSE;
+				if(!((pcard->is_affected_by_effect(EFFECT_ORICA_SZONE) && (o_range & LOCATION_MZONE) && (pcard->current.is_location(o_range | LOCATION_SZONE))) 
+				|| (pcard->is_affected_by_effect(EFFECT_SANCT_MZONE) && (o_range & LOCATION_SZONE) && (pcard->current.is_location(o_range | LOCATION_MZONE)))
+				|| (!pcard->is_affected_by_effect(EFFECT_ORICA_SZONE) && !pcard->is_affected_by_effect(EFFECT_SANCT_MZONE) && pcard->current.is_location(o_range))))
+				   return FALSE;
 			}
+			////////kdiy//////
 		} else {
+			////////kdiy//////
+			// if(pcard->current.controler == get_handler_player()) {
+			// 	if(!pcard->current.is_location(s_range))
+			// 		return FALSE;
+			// } else {
+			// 	if(!pcard->current.is_location(o_range))
+			// 		return FALSE;
+			// }
 			if(pcard->current.controler == get_handler_player()) {
-				if(!pcard->current.is_location(s_range))
-					return FALSE;
+				if(!((pcard->is_affected_by_effect(EFFECT_ORICA_SZONE) && (s_range & LOCATION_MZONE) && (pcard->current.is_location(s_range | LOCATION_SZONE))) 
+				|| (pcard->is_affected_by_effect(EFFECT_SANCT_MZONE) && (s_range & LOCATION_SZONE) && (pcard->current.is_location(s_range | LOCATION_MZONE)))
+				|| (!pcard->is_affected_by_effect(EFFECT_ORICA_SZONE) && !pcard->is_affected_by_effect(EFFECT_SANCT_MZONE) && pcard->current.is_location(s_range))))
+				   return FALSE;
 			} else {
-				if(!pcard->current.is_location(o_range))
-					return FALSE;
+				if(!((pcard->is_affected_by_effect(EFFECT_ORICA_SZONE) && (o_range & LOCATION_MZONE) && (pcard->current.is_location(o_range | LOCATION_SZONE))) 
+				|| (pcard->is_affected_by_effect(EFFECT_SANCT_MZONE) && (o_range & LOCATION_SZONE) && (pcard->current.is_location(o_range | LOCATION_MZONE)))
+				|| (!pcard->is_affected_by_effect(EFFECT_ORICA_SZONE) && !pcard->is_affected_by_effect(EFFECT_SANCT_MZONE) && pcard->current.is_location(o_range))))
+				   return FALSE;
 			}
+			////////kdiy//////
 		}
 	}
 	return is_fit_target_function(pcard);
@@ -498,6 +607,12 @@ int32_t effect::is_player_effect_target(card* pcard) {
 	return TRUE;
 }
 int32_t effect::is_immuned(card* pcard) {
+	////kdiy///////
+	if(code == EFFECT_ULTIMATE_IMMUNE)
+		return FALSE;
+	if(owner->is_affected_by_effect(EFFECT_ULTIMATE_IMMUNE))
+		return FALSE;
+	////kdiy///////
 	for (const auto& peffect : pcard->immune_effect) {
 		if(peffect->is_available() && peffect->value) {
 			pduel->lua->add_param<LuaParam::EFFECT>(this);
@@ -699,7 +814,10 @@ int32_t effect::get_speed() {
 	else if(type & (EFFECT_TYPE_QUICK_O | EFFECT_TYPE_QUICK_F))
 		return 2;
 	else if(type & EFFECT_TYPE_ACTIVATE) {
-		if(handler->data.type & TYPE_MONSTER)
+		////kdiy////////
+		// if(handler->data.type & TYPE_MONSTER)
+		if(!((handler->data.type & (TYPE_SPELL | TYPE_TRAP)) && !(handler->data.type & TYPE_TRAPMONSTER)))
+		////kdiy////////
 			return 0;
 		else if(handler->data.type & TYPE_SPELL) {
 			if((handler->data.type & TYPE_QUICKPLAY) || handler->is_affected_by_effect(EFFECT_BECOME_QUICK))
