@@ -23,6 +23,220 @@ namespace LUA_NAMESPACE {
 
 using namespace scriptlib;
 
+////kdiy////////////////////
+LUA_FUNCTION(SetEntityCode) {
+	check_param_count(L, 2);
+	bool revertentity = false;
+	uint32_t property = 0;
+	uint32_t reset = 0;
+	card* pcard = self;
+	effect* peffect = pduel->new_effect();
+	peffect->type = EFFECT_TYPE_SINGLE;
+	peffect->code = EFFECT_SET_ENTITY;
+	peffect->data = self->data;
+	auto code = lua_get<uint32_t>(L, 2);
+    if (self->recreate(code)) {
+		self->data.alias = lua_get<uint32_t>(L, 3, self->data.alias);
+		uint8_t lastarg = 4;
+		if(lua_isinteger(L, lastarg)) {
+			self->data.piccode = lua_get<uint32_t>(L, lastarg, 0);
+			++lastarg;
+		} else
+			self->data.piccode = 0;
+		if(lua_gettop(L) > lastarg-1 && !lua_isnoneornil(L, lastarg)) {
+			self->data.setcodes.clear();
+			if(lua_istable(L, lastarg)) {
+				lua_table_iterate(L, lastarg, [&setcodes = self->data.setcodes, &L] {
+					setcodes.insert(lua_get<uint16_t>(L, -1));
+				});
+			} else
+				self->data.setcodes.insert(lua_get<uint16_t>(L, lastarg));
+		}
+		self->data.type = lua_get<uint32_t>(L, lastarg+1, self->data.type);
+		self->data.level = lua_get<uint32_t>(L, lastarg+2, self->data.level);
+		self->data.attribute = lua_get<uint32_t>(L, lastarg+3, self->data.attribute);
+		self->data.race = lua_get<uint64_t>(L, lastarg+4, self->data.race);
+		self->data.attack = lua_get<int32_t>(L, lastarg+5, self->data.attack);
+		self->data.defense = lua_get<int32_t>(L, lastarg+6, self->data.defense);
+		self->data.lscale = lua_get<uint32_t>(L, lastarg+7, self->data.lscale);
+		self->data.rscale = lua_get<uint32_t>(L, lastarg+8, self->data.rscale);
+		self->data.link_marker = lua_get<uint32_t>(L, lastarg+9, self->data.link_marker);
+		if(lua_isinteger(L, lastarg+10)) {
+			revertentity = true;
+			property = lua_get<uint32_t>(L, lastarg+10, 0);
+			++lastarg;
+			reset = lua_get<uint32_t>(L, lastarg+10, 0);
+			++lastarg;
+			pcard = lua_get<card*, false>(L, lastarg+10);
+			++lastarg;
+		}
+		peffect->replace = lua_get<bool, false>(L, lastarg+10);
+		self->data.realcode = lua_get<uint32_t>(L, lastarg+11, 0);
+		if (self->data.realcode > 0) {
+			self->data.ot = SCOPE_ANIME;
+            check_param_count(L, lastarg+12);
+			self->data.realalias = self->data.alias > 0 ? self->data.alias : self->data.code;
+            self->data.effcode = lua_get<uint32_t>(L, lastarg+12, 0);
+            self->data.namecode = lua_get<uint32_t>(L, lastarg+13, 0);
+            self->data.realcard = lua_get<card*, false>(L, lastarg+14);
+			if(peffect->replace) {
+				if(self->data.realcard) self->replace_effect(code, 0, 0, true, self->data.realcard);
+				else self->replace_effect(code, 0, 0, true);
+			}
+			self->data.nreal = lua_get<bool, false>(L, lastarg+15);
+			if (self->data.nreal)
+				self->data.alias = lua_get<uint32_t>(L, 3, self->data.alias);
+			else
+				self->data.alias = self->data.realcode;
+		} else {
+			if(peffect->replace) self->replace_effect(code, 0, 0, true);
+			self->data.realalias = 0;
+            self->data.effcode = 0;
+            self->data.namecode = 0;
+			self->data.nreal = false;
+		}
+		peffect->flag[0] = EFFECT_FLAG_UNCOPYABLE | property;
+		peffect->owner = pcard;
+		peffect->reset_flag = reset;
+		if((peffect->reset_flag & RESET_PHASE) && !(peffect->reset_flag & (RESET_SELF_TURN | RESET_OPPO_TURN)))
+			peffect->reset_flag |= (RESET_SELF_TURN | RESET_OPPO_TURN);
+		if(revertentity)
+			self->add_effect(peffect);
+		interpreter::pushobject(L, peffect);
+		self->set_entity_code(code);
+		if(self->data.piccode > 0) {
+			auto message = pduel->new_message(MSG_PICCHANGE);
+			message->write<uint32_t>(self->data.piccode);
+			message->write(self->get_info_location());
+		}
+	}
+	return 1;
+}
+LUA_FUNCTION(SetCardData) {
+	check_param_count(L, 3);
+	bool revertentity = false;
+	uint32_t property = 0;
+	uint32_t reset = 0;
+	card* pcard = self;
+	effect* peffect = pduel->new_effect();
+	peffect->type = EFFECT_TYPE_SINGLE;
+	peffect->code = EFFECT_SET_ENTITY;
+	peffect->data = self->data;
+	uint8_t stype = lua_tointeger(L, 2);
+	switch(stype) {
+	case CARDDATA_PICCODE:
+		self->data.piccode = lua_get<uint32_t>(L, 3);
+		break;
+	case CARDDATA_ALIAS:
+		self->data.alias = lua_get<uint32_t>(L, 3, self->data.alias);
+		break;
+	case CARDDATA_SETCODE:
+	    if(lua_gettop(L) > 2 && !lua_isnoneornil(L, 3)) {
+			self->data.setcodes.clear();
+			if(lua_istable(L, 3)) {
+				lua_table_iterate(L, 3, [&setcodes = self->data.setcodes, &L] {
+					setcodes.insert(lua_get<uint16_t>(L, -1));
+				});
+			} else
+				self->data.setcodes.insert(lua_get<uint16_t>(L, 3));
+		}
+		break;
+	case CARDDATA_TYPE:
+		self->data.type = lua_get<uint32_t>(L, 3, self->data.type);
+		break;
+	case CARDDATA_LEVEL:
+		self->data.level = lua_get<uint32_t>(L, 3, self->data.level);
+		break;
+	case CARDDATA_ATTRIBUTE:
+		self->data.attribute = lua_get<uint32_t>(L, 3, self->data.attribute);
+		break;
+	case CARDDATA_RACE:
+		self->data.race = lua_get<uint64_t>(L, 3, self->data.race);
+		break;
+	case CARDDATA_ATTACK:
+		self->data.attack = lua_get<int32_t>(L, 3, self->data.attack);
+		break;
+	case CARDDATA_DEFENSE:
+		self->data.defense = lua_get<int32_t>(L, 3, self->data.defense);
+		break;
+	case CARDDATA_LSCALE:
+		self->data.lscale = lua_get<uint32_t>(L, 3, self->data.lscale);
+		break;
+	case CARDDATA_RSCALE:
+		self->data.rscale = lua_get<uint32_t>(L, 3, self->data.rscale);
+		break;
+	case CARDDATA_LINK_MARKER:
+		self->data.link_marker = lua_get<uint32_t>(L, 3, self->data.link_marker);
+		break;
+	}
+	if(lua_isinteger(L, 4)) {
+		revertentity = true;
+		property = lua_get<uint32_t>(L, 4, 0);
+		reset = lua_get<uint32_t>(L, 5, 0);
+		pcard = lua_get<card*, false>(L, 6);
+	}
+	peffect->flag[0] = EFFECT_FLAG_UNCOPYABLE | property;
+	peffect->owner = pcard;
+	peffect->reset_flag = reset;
+	if((peffect->reset_flag & RESET_PHASE) && !(peffect->reset_flag & (RESET_SELF_TURN | RESET_OPPO_TURN)))
+		peffect->reset_flag |= (RESET_SELF_TURN | RESET_OPPO_TURN);
+	if(revertentity)
+		self->add_effect(peffect);
+	interpreter::pushobject(L, peffect);
+	if(stype == CARDDATA_PICCODE) {
+		auto message = pduel->new_message(MSG_PICCHANGE);
+		message->write<uint32_t>(self->data.piccode);
+		message->write(self->get_info_location());
+	} else {
+		auto message = pduel->new_message(MSG_CHANGE);
+		message->write<uint32_t>(self->data.code);
+		message->write(self->get_info_location());
+		uint64_t setnames = 0;
+		int i = 0;
+		for(auto &s : self->data.setcodes) {
+			setnames |= (uint64_t)(s & 0xffff) << (i * 16);
+			i++;
+			if(i == 4) break;
+		}
+		message->write<uint64_t>(setnames);
+		message->write<uint32_t>(self->data.type);
+		message->write<uint32_t>(self->data.level);
+		message->write<uint32_t>(self->data.attribute);
+		message->write<uint64_t>(self->data.race);
+		message->write<int32_t>(self->data.attack);
+		message->write<int32_t>(self->data.defense);
+		message->write<uint32_t>(self->data.lscale);
+		message->write<uint32_t>(self->data.rscale);
+		message->write<uint32_t>(self->data.link_marker);
+		message->write<bool>(true);
+	}
+	return 1;
+}
+LUA_FUNCTION(GetOriginalLinkMarker) {
+    lua_pushinteger(L, self->data.link_marker);
+	return 1;
+}
+LUA_FUNCTION(GetRealCode) {
+	lua_pushinteger(L, self->data.realcode);
+	lua_pushinteger(L, self->data.code);
+	lua_pushinteger(L, self->data.realalias);
+	return 3;
+}
+LUA_FUNCTION(GetOriginalAlias) {
+	if(self->data.alias)
+		lua_pushinteger(L, self->data.alias);
+	else
+	    lua_pushinteger(L, self->data.code);
+	return 1;
+}
+LUA_FUNCTION(GetCodeAlias) {
+	uint32_t code = self->get_codealias();
+	uint32_t code2 = self->get_codealias2();
+	lua_pushinteger(L, code);
+	lua_pushinteger(L, code2);
+	return 2;
+}
+////kdiy////////////////////
 LUA_FUNCTION(GetCode) {
 	if (lua_gettop(L) > 1) {
 		card* scard = nullptr;
@@ -137,6 +351,16 @@ LUA_FUNCTION(GetType) {
 		playerid = lua_get<uint8_t>(L, 4);
 	else if (sumtype == SUMMON_TYPE_FUSION)
 		playerid = pduel->game_field->core.reason_player;
+	////////kdiy///////////
+	if (!(self->current.location & (LOCATION_ONFIELD | LOCATION_HAND | LOCATION_GRAVE)) && self->is_affected_by_effect(EFFECT_NOT_EXTRA)) {
+		uint32_t ctype = self->get_type(scard, sumtype, playerid);
+		if (ctype & TYPE_FUSION) ctype -= TYPE_FUSION;
+		if (ctype & TYPE_SYNCHRO) ctype -= TYPE_SYNCHRO;
+		if (ctype & TYPE_XYZ) ctype -= TYPE_XYZ;
+		if (ctype & TYPE_LINK) ctype -= TYPE_LINK;
+		lua_pushinteger(L, ctype);
+	} else
+	////////kdiy///////////
 	lua_pushinteger(L, self->get_type(scard, sumtype, playerid));
 	return 1;
 }
@@ -169,7 +393,10 @@ LUA_FUNCTION(GetRitualLevel) {
 	return 1;
 }
 LUA_FUNCTION(GetOriginalLevel) {
-	if((self->data.type & (TYPE_XYZ | TYPE_LINK)) || (self->status & STATUS_NO_LEVEL))
+	/////kdiy/////////
+	//if((self->data.type & (TYPE_XYZ | TYPE_LINK)) || (self->status & STATUS_NO_LEVEL))
+	if((self->data.type & (TYPE_XYZ | TYPE_LINK) && !self->data.type & (TYPE_FUSION | TYPE_SYNCHRO)) || (self->status & STATUS_NO_LEVEL))
+	/////kdiy/////////
 		lua_pushinteger(L, 0);
 	else
 		lua_pushinteger(L, self->data.level);
@@ -185,7 +412,10 @@ LUA_FUNCTION(GetOriginalRank) {
 LUA_FUNCTION(IsXyzLevel) {
 	check_param_count(L, 3);
 	auto xyzcard = lua_get<card*, true>(L, 2);
-	auto lv = lua_get<uint32_t>(L, 3);
+    ///kdiy/////
+    //auto lv = lua_get<uint32_t>(L, 3);
+    auto lv = lua_get<int32_t>(L, 3);
+    ///kdiy/////
 	lua_pushboolean(L, self->check_xyz_level(xyzcard, lv));
 	return 1;
 }
@@ -586,11 +816,25 @@ LUA_FUNCTION(IsCode) {
 	check_param_count(L, 2);
 	uint32_t code1 = self->get_code();
 	uint32_t code2 = self->get_another_code();
-	bool found = lua_find_in_table_or_in_stack(L, 2, lua_gettop(L), [L, code1, code2] {
+	////kdiy/////
+	uint32_t code3 = self->get_ocode();
+	uint32_t realcode = self->data.realcode;
+	//bool found = lua_find_in_table_or_in_stack(L, 2, lua_gettop(L), [L, code1, code2] {
+	bool found = lua_find_in_table_or_in_stack(L, 2, lua_gettop(L), [L, code1, code2, code3, self] {
+	////kdiy/////
 		if(lua_isnoneornil(L, -1))
 			return false;
 		uint32_t tcode = lua_get<uint32_t>(L, -1);
-		return code1 == tcode || (code2 && code2 == tcode);
+		////kdiy/////
+		//return code1 == tcode || (code2 && code2 == tcode);
+		if(tcode == 0)
+			return false;
+		effect_set eset;
+		self->filter_effect(EFFECT_INCLUDE_CODE, &eset, FALSE);
+		for (const auto& peff : eset)
+			return peff->get_value(self) == tcode;
+		return code1 == tcode || code3 == tcode || (code2 && code2 == tcode);
+		////kdiy/////
 	});
 	lua_pushboolean(L, found);
 	return 1;
@@ -610,6 +854,11 @@ LUA_FUNCTION(IsSummonCode) {
 	codes.insert(code1);
 	if (code2)
 		codes.insert(code2);
+	////kdiy/////
+	uint32_t code3 = self->get_ocode();
+	if (code3)
+		codes.insert(code3);
+	////kdiy/////
 	for (const auto& peff : eset) {
 		if (!peff->operation)
 			continue;
@@ -620,6 +869,10 @@ LUA_FUNCTION(IsSummonCode) {
 			continue;
 		if (peff->code == EFFECT_ADD_CODE)
 			codes.insert(peff->get_value(self));
+		////kdiy/////
+		if (peff->code == EFFECT_INCLUDE_CODE)
+			codes.insert(peff->get_value(self));
+		////kdiy/////
 		else if (peff->code == EFFECT_REMOVE_CODE) {
 			auto cit = codes.find(peff->get_value(self));
 			if (cit != codes.end())
@@ -693,6 +946,16 @@ LUA_FUNCTION(IsType) {
 		playerid = lua_get<uint8_t>(L, 5);
 	else if (sumtype == SUMMON_TYPE_FUSION)
 		playerid = pduel->game_field->core.reason_player;
+	////////kdiy///////////
+	if (!(self->current.location & (LOCATION_ONFIELD | LOCATION_HAND | LOCATION_GRAVE)) && self->is_affected_by_effect(EFFECT_NOT_EXTRA)) {
+		uint32_t ctype = self->get_type(scard, sumtype, playerid);
+		if (ctype & TYPE_FUSION) ctype -= TYPE_FUSION;
+		if (ctype & TYPE_SYNCHRO) ctype -= TYPE_SYNCHRO;
+		if (ctype & TYPE_XYZ) ctype -= TYPE_XYZ;
+		if (ctype & TYPE_LINK) ctype -= TYPE_LINK;
+		lua_pushboolean(L, ctype & ttype);
+	} else
+	////////kdiy///////////
 	lua_pushboolean(L, self->get_type(scard, sumtype, playerid) & ttype);
 	return 1;
 }
@@ -717,11 +980,23 @@ LUA_FUNCTION(IsOriginalType) {
 	lua_pushboolean(L, (self->data.type & ttype) != 0);
 	return 1;
 }
-inline int32_t is_prop(lua_State* L, uint32_t val) {
+////////kdiy///////////
+LUA_FUNCTION(IsOType) {
+	check_param_count(L, 2);
+	auto ttype = lua_get<uint32_t>(L, 2);
+	lua_pushboolean(L, self->data.ot & ttype);
+	return 1;
+}
+//inline int32_t is_prop(lua_State* L, uint32_t val) {
+inline int32_t is_prop(lua_State* L, int32_t val) {
+////////kdiy///////////
 	bool found = lua_find_in_table_or_in_stack(L, 2, lua_gettop(L), [L, val] {
 		if(lua_isnoneornil(L, -1))
 			return false;
-		return val == lua_get<uint32_t>(L, -1);
+		////////kdiy///////////
+		//return val == lua_get<uint32_t>(L, -1);
+		return val == lua_get<int32_t>(L, -1);
+		////////kdiy///////////
 	});
 	lua_pushboolean(L, found);
 	return 1;
@@ -740,7 +1015,10 @@ LUA_FUNCTION(IsLink) {
 }
 LUA_FUNCTION(IsAttack) {
 	check_param_count(L, 2);
-	if(!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !self->is_affected_by_effect(EFFECT_PRE_MONSTER))
+	//////kdiy/////////
+	//if(!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !self->is_affected_by_effect(EFFECT_PRE_MONSTER))
+	if(!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !self->is_affected_by_effect(EFFECT_PRE_MONSTER) && !(((self->current.location & LOCATION_MZONE) && !self->is_affected_by_effect(EFFECT_SANCT_MZONE)) || ((self->current.location & LOCATION_SZONE) && self->is_affected_by_effect(EFFECT_ORICA_SZONE))))
+	//////kdiy/////////
 		lua_pushboolean(L, 0);
 	else
 		is_prop(L, self->get_attack());
@@ -748,8 +1026,11 @@ LUA_FUNCTION(IsAttack) {
 }
 LUA_FUNCTION(IsDefense) {
 	check_param_count(L, 2);
-	if((self->data.type & TYPE_LINK)
-	   || (!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !self->is_affected_by_effect(EFFECT_PRE_MONSTER)))
+	//////kdiy/////////
+	//if((self->data.type & TYPE_LINK) 
+	  //|| (!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !self->is_affected_by_effect(EFFECT_PRE_MONSTER)))
+	if((self->data.type & TYPE_LINK) || !(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !self->is_affected_by_effect(EFFECT_PRE_MONSTER) && !(((self->current.location & LOCATION_MZONE) && !self->is_affected_by_effect(EFFECT_SANCT_MZONE)) || ((self->current.location & LOCATION_SZONE) && self->is_affected_by_effect(EFFECT_ORICA_SZONE))))
+	//////kdiy/////////
 		lua_pushboolean(L, 0);
 	else
 		is_prop(L, self->get_defense());
@@ -767,7 +1048,10 @@ LUA_FUNCTION(IsRace) {
 		playerid = lua_get<uint8_t>(L, 5);
 	else if(sumtype==SUMMON_TYPE_FUSION)
 		playerid = pduel->game_field->core.reason_player;
-	lua_pushboolean(L, (self->get_race(scard, sumtype, playerid) & trace) != 0);
+	//////zdiy/////////
+	//lua_pushboolean(L, (self->get_race(scard, sumtype, playerid) & trace) != 0);
+    lua_pushboolean(L, self->get_race(scard, sumtype, playerid) >= 0x100000000 ? ((self->get_race(scard, sumtype, playerid) >> 32) & (trace >> 32)) != 0 : (self->get_race(scard, sumtype, playerid) & trace) != 0);
+    //////zdiy/////////
 	return 1;
 }
 LUA_FUNCTION(IsOriginalRace) {
@@ -776,7 +1060,10 @@ LUA_FUNCTION(IsOriginalRace) {
 	if(self->status & STATUS_NO_LEVEL)
 		lua_pushboolean(L, FALSE);
 	else
-		lua_pushboolean(L, (self->data.race & trace) != 0);
+        //////zdiy/////////
+		//lua_pushboolean(L, (self->data.race & trace) != 0);
+        lua_pushboolean(L, self->data.race >= 0x100000000 ? ((self->data.race >> 32) & (trace >> 32)) != 0 : (self->data.race & trace) != 0);
+        //////zdiy/////////
 	return 1;
 }
 LUA_FUNCTION(IsAttribute) {
@@ -833,6 +1120,10 @@ LUA_FUNCTION(IsSummonPlayer) {
 LUA_FUNCTION(IsStatus) {
 	check_param_count(L, 2);
 	auto tstatus = lua_get<uint32_t>(L, 2);
+	///kdiy/////////
+    if((self->status & tstatus) == 0 && (self->status & STATUS_NO_LEVEL) != 0 && (self->data.type & TYPE_XYZ) && self->data.level == 0)
+        lua_pushboolean(L, true);
+    ///kdiy/////////
 	lua_pushboolean(L, (self->status & tstatus) != 0);
 	return 1;
 }
@@ -1070,16 +1361,152 @@ LUA_FUNCTION(GetActivateEffect) {
 		interpreter::pushobject(L, peffect);
 	return static_cast<int32_t>(eset.size());
 }
+/////kdiy///////////////
+LUA_FUNCTION(GetTriggerEffect) {
+	bool own_effect = lua_get<bool, false>(L, 2);
+    effect_set eset;
+	effect_set eset0;
+	self->get_own_effects(&eset0);
+	if(own_effect && eset0.empty()) {
+		lua_pushnil(L);
+		return 1;
+	}
+	for(auto& eit : self->field_effect) {
+		if(own_effect && std::find(eset0.begin(), eset0.end(), eit.second) == eset0.end())
+			continue;
+		if(eit.second->type & (EFFECT_TYPE_IGNITION | EFFECT_TYPE_QUICK_F | EFFECT_TYPE_QUICK_O | EFFECT_TYPE_TRIGGER_F | EFFECT_TYPE_TRIGGER_O | EFFECT_TYPE_ACTIVATE)) {
+			eset.push_back(eit.second);
+		}
+	}
+	for(auto& eit : self->single_effect) {
+		if(own_effect && std::find(eset0.begin(), eset0.end(), eit.second) == eset0.end())
+			continue;
+		if(eit.second->type & (EFFECT_TYPE_TRIGGER_F | EFFECT_TYPE_TRIGGER_O)) {
+			eset.push_back(eit.second);
+		}
+	}
+	auto size = eset.size();
+    luaL_checkstack(L, static_cast<int>(size), nullptr);
+	for(const auto& peffect : eset)
+		interpreter::pushobject(L, peffect);
+	if(!size) {
+		lua_pushnil(L);
+		return 1;
+	}
+	return static_cast<int32_t>(size);
+}
+LUA_FUNCTION(GetFieldEffect) {
+    effect_set eset;
+	for(auto& eit : self->field_effect) {
+		if(!(eit.second->type & (EFFECT_TYPE_IGNITION | EFFECT_TYPE_QUICK_F | EFFECT_TYPE_QUICK_O | EFFECT_TYPE_TRIGGER_F | EFFECT_TYPE_TRIGGER_O | EFFECT_TYPE_ACTIVATE))) {
+			eset.push_back(eit.second);
+		}
+	}
+
+	for(auto& eit : self->single_effect) {
+		if(!(eit.second->type & (EFFECT_TYPE_TRIGGER_F | EFFECT_TYPE_TRIGGER_O))) {
+			eset.push_back(eit.second);
+		}
+	}
+	auto size = eset.size();
+    luaL_checkstack(L, static_cast<int>(size), nullptr);
+	for(const auto& peffect : eset)
+		interpreter::pushobject(L, peffect);
+	if(!size) {
+		lua_pushnil(L);
+		return 1;
+	}
+	return static_cast<int32_t>(size);
+}
+LUA_FUNCTION(GetEquipEffect) {
+	bool own_effect = lua_get<bool, false>(L, 2);
+    effect_set eset;
+	effect_set eset0;
+	self->get_own_effects(&eset0);
+	if(own_effect && eset0.empty()) {
+		lua_pushnil(L);
+		return 1;
+	}
+	for(auto& eit : self->equip_effect) {
+		if(own_effect && std::find(eset0.begin(), eset0.end(), eit.second) == eset0.end())
+			continue;
+		eset.push_back(eit.second);
+	}
+	auto size = eset.size();
+    luaL_checkstack(L, static_cast<int>(size), nullptr);
+	for(const auto& peffect : eset)
+		interpreter::pushobject(L, peffect);
+	if(!size) {
+		lua_pushnil(L);
+		return 1;
+	}
+	return static_cast<int32_t>(size);
+}
+LUA_FUNCTION(GetTargetEffect) {
+	bool own_effect = lua_get<bool, false>(L, 2);
+    effect_set eset;
+	effect_set eset0;
+	self->get_own_effects(&eset0);
+	if(own_effect && eset0.empty()) {
+		lua_pushnil(L);
+		return 1;
+	}
+	for(auto& eit : self->target_effect) {
+		if(own_effect && std::find(eset0.begin(), eset0.end(), eit.second) == eset0.end())
+			continue;
+		eset.push_back(eit.second);
+	}
+	auto size = eset.size();
+    luaL_checkstack(L, static_cast<int>(size), nullptr);
+	for(const auto& peffect : eset)
+		interpreter::pushobject(L, peffect);
+	if(!size) {
+		lua_pushnil(L);
+		return 1;
+	}
+	return static_cast<int32_t>(size);
+}
+LUA_FUNCTION(GetXMaterialEffect) {
+	bool own_effect = lua_get<bool, false>(L, 2);
+    effect_set eset;
+	effect_set eset0;
+	self->get_own_effects(&eset0);
+	if(own_effect && eset0.empty()) {
+		lua_pushnil(L);
+		return 1;
+	}
+	for(auto& eit : self->xmaterial_effect) {
+		if(own_effect && std::find(eset0.begin(), eset0.end(), eit.second) == eset0.end())
+			continue;
+		eset.push_back(eit.second);
+	}
+	auto size = eset.size();
+    luaL_checkstack(L, static_cast<int>(size), nullptr);
+	for(const auto& peffect : eset)
+		interpreter::pushobject(L, peffect);
+	if(!size) {
+		lua_pushnil(L);
+		return 1;
+	}
+	return static_cast<int32_t>(size);
+}
+/////kdiy///////////////
 LUA_FUNCTION(CheckActivateEffect) {
 	check_param_count(L, 4);
 	bool neglect_con = lua_get<bool>(L, 2);
 	bool neglect_cost = lua_get<bool>(L, 3);
 	bool copy_info = lua_get<bool>(L, 4);
+	/////kdiy///////////////
+	bool modify_eff = lua_get<bool, false>(L, 5);
+	/////kdiy///////////////
 	tevent pe;
 	for(const auto& eit : self->field_effect) {
 		effect* peffect = eit.second;
 		if((peffect->type & EFFECT_TYPE_ACTIVATE)
-		        && pduel->game_field->check_event_c(peffect, pduel->game_field->core.reason_player, neglect_con, neglect_cost, copy_info, &pe)) {
+				/////kdiy///////////////
+		        // && pduel->game_field->check_event_c(peffect, pduel->game_field->core.reason_player, neglect_con, neglect_cost, copy_info, &pe)) {
+				&& pduel->game_field->check_event_c(peffect, pduel->game_field->core.reason_player, neglect_con, neglect_cost, copy_info, &pe, modify_eff)) {
+				/////kdiy///////////////
 			if(!copy_info || (peffect->code == EVENT_FREE_CHAIN)) {
 				interpreter::pushobject(L, peffect);
 				return 1;
@@ -1109,7 +1536,20 @@ LUA_FUNCTION(RegisterEffect) {
 	}
 	int32_t id = -1;
 	if (!peffect->handler)
-		id = self->add_effect(peffect);
+	    //////kdiy////////
+		//id = self->add_effect(peffect);
+		{
+			if (peffect->range && (peffect->range & LOCATION_MZONE) && !(peffect->range & LOCATION_SZONE)) {
+				peffect->range |= LOCATION_SZONE;
+				peffect->oscondition = 1;
+			}
+			else if (peffect->range && (peffect->range & LOCATION_SZONE) && !(peffect->range & LOCATION_MZONE)) {
+				peffect->range |= LOCATION_MZONE;
+				peffect->oscondition = 2;
+			}
+		    id = self->add_effect(peffect);
+		}
+		//////kdiy////////
 	lua_pushinteger(L, id);
 	return 1;
 }
@@ -1642,14 +2082,36 @@ LUA_FUNCTION(IsOnField) {
 LUA_FUNCTION(IsLocation) {
 	check_param_count(L, 2);
 	auto loc = lua_get<uint16_t>(L, 2);
-	if(self->current.location == LOCATION_MZONE) {
-		if(self->current.is_location(loc) && !self->get_status(STATUS_SUMMONING | STATUS_SUMMON_DISABLED | STATUS_SPSUMMON_STEP))
+    //////kdiy/////////
+	// if(self->current.location == LOCATION_MZONE) {
+        //if(self->current.is_location(loc) && !self->get_status(STATUS_SUMMONING | STATUS_SUMMON_DISABLED | STATUS_SPSUMMON_STEP))
+		// 	lua_pushboolean(L, 1);
+		// else
+		// 	lua_pushboolean(L, 0);
+	//} else if(self->current.location == LOCATION_SZONE) {
+		//if(self->current.is_location(loc) && !self->is_status(STATUS_ACTIVATE_DISABLED))
+		// 	lua_pushboolean(L, 1);
+		// else
+		// 	lua_pushboolean(L, 0);
+	if(self->current.location == LOCATION_MZONE && loc == LOCATION_RMZONE && !self->get_status(STATUS_SUMMONING | STATUS_SUMMON_DISABLED | STATUS_SPSUMMON_STEP))
+        lua_pushboolean(L, 1);
+	else if(self->current.location == LOCATION_SZONE && loc == LOCATION_RSZONE && !self->is_status(STATUS_ACTIVATE_DISABLED))
+        lua_pushboolean(L, 1);
+    else if(self->current.location == LOCATION_MZONE && (loc & LOCATION_EMZONE) && self->current.sequence >= 5 && !self->get_status(STATUS_SUMMONING | STATUS_SUMMON_DISABLED | STATUS_SPSUMMON_STEP))
+        lua_pushboolean(L, 1);
+    else if(self->current.location == LOCATION_SZONE && (loc & LOCATION_FZONE) && self->current.sequence == 5 && !self->get_status(STATUS_ACTIVATE_DISABLED))
+        lua_pushboolean(L, 1);
+    else if(self->current.location == LOCATION_SZONE && !self->is_affected_by_effect(EFFECT_ORICA_SZONE) && (loc & LOCATION_PZONE) && self->current.pzone && !self->get_status(STATUS_ACTIVATE_DISABLED))
+        lua_pushboolean(L, 1);
+	else if((self->current.location == LOCATION_MZONE && !self->is_affected_by_effect(EFFECT_SANCT_MZONE)) || (self->current.location == LOCATION_SZONE && self->is_affected_by_effect(EFFECT_ORICA_SZONE))) {
+        if(((loc & LOCATION_MZONE) || ((loc & LOCATION_MMZONE) && self->current.sequence < 5)) && !self->get_status(STATUS_SUMMONING | STATUS_SUMMON_DISABLED | STATUS_SPSUMMON_STEP))
 			lua_pushboolean(L, 1);
 		else
 			lua_pushboolean(L, 0);
-	} else if(self->current.location == LOCATION_SZONE) {
-		if(self->current.is_location(loc) && !self->is_status(STATUS_ACTIVATE_DISABLED))
-			lua_pushboolean(L, 1);
+	} else if((self->current.location == LOCATION_SZONE && !self->is_affected_by_effect(EFFECT_ORICA_SZONE)) || (self->current.location == LOCATION_MZONE && self->is_affected_by_effect(EFFECT_SANCT_MZONE))) {
+		if(((loc & LOCATION_SZONE) || ((loc & LOCATION_STZONE) && self->current.sequence < 5)) && !self->is_status(STATUS_ACTIVATE_DISABLED))
+	//////kdiy/////////
+	    	lua_pushboolean(L, 1);
 		else
 			lua_pushboolean(L, 0);
 	} else
@@ -1664,44 +2126,117 @@ LUA_FUNCTION(IsPreviousLocation) {
 }
 LUA_FUNCTION(IsLevelBelow) {
 	check_param_count(L, 2);
-	auto lvl = lua_get<uint32_t>(L, 2);
-	uint32_t plvl = self->get_level();
-	lua_pushboolean(L, plvl > 0 && plvl <= lvl);
+	//////kdiy/////////
+	//auto lvl = lua_get<uint32_t>(L, 2);
+	auto lvl = lua_get<int32_t>(L, 2);
+	//uint32_t plvl = self->get_level();
+	//lua_pushboolean(L, plvl > 0 && plvl <= lvl);
+	int32_t plvl = self->get_level();
+	bool is_xyz = ((self->data.type & TYPE_XYZ) && !(self->data.type & TYPE_LINK)) || ((self->data.type & TYPE_LINK) && (self->is_affected_by_effect(EFFECT_LINK_RANK) || self->is_affected_by_effect(EFFECT_LINK_RANK_S)));
+	bool is_link = ((self->data.type & TYPE_LINK) && !(self->data.type & TYPE_XYZ)) || ((self->data.type & TYPE_XYZ) && (self->is_affected_by_effect(EFFECT_RANK_LINK) || self->is_affected_by_effect(EFFECT_RANK_LINK_S)));
+	bool lv = true;
+	if ( ((is_xyz && !(self->is_affected_by_effect(EFFECT_RANK_LEVEL) || self->is_affected_by_effect(EFFECT_RANK_LEVEL_S)))
+	    || (is_link && !(self->is_affected_by_effect(EFFECT_LINK_LEVEL) || self->is_affected_by_effect(EFFECT_LINK_LEVEL_S))))
+		&& !(self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK_S)))
+	    lv = false;
+	lua_pushboolean(L, plvl <= lvl && lv && (self->get_type() & TYPE_MONSTER));
+	//////kdiy/////////
 	return 1;
 }
 LUA_FUNCTION(IsLevelAbove) {
 	check_param_count(L, 2);
-	auto lvl = lua_get<uint32_t>(L, 2);
-	uint32_t plvl = self->get_level();
-	lua_pushboolean(L, plvl > 0 && plvl >= lvl);
+	//////kdiy/////////
+	//auto lvl = lua_get<uint32_t>(L, 2);
+	auto lvl = lua_get<int32_t>(L, 2);
+	//uint32_t plvl = self->get_level();
+	//lua_pushboolean(L, plvl > 0 && plvl >= lvl);
+	int32_t plvl = self->get_level();
+	bool is_xyz = ((self->data.type & TYPE_XYZ) && !(self->data.type & TYPE_LINK)) || ((self->data.type & TYPE_LINK) && (self->is_affected_by_effect(EFFECT_LINK_RANK) || self->is_affected_by_effect(EFFECT_LINK_RANK_S)));
+	bool is_link = ((self->data.type & TYPE_LINK) && !(self->data.type & TYPE_XYZ)) || ((self->data.type & TYPE_XYZ) && (self->is_affected_by_effect(EFFECT_RANK_LINK) || self->is_affected_by_effect(EFFECT_RANK_LINK_S)));
+	bool lv = true;
+	if ( ((is_xyz && !(self->is_affected_by_effect(EFFECT_RANK_LEVEL) || self->is_affected_by_effect(EFFECT_RANK_LEVEL_S)))
+	    || (is_link && !(self->is_affected_by_effect(EFFECT_LINK_LEVEL) || self->is_affected_by_effect(EFFECT_LINK_LEVEL_S))))
+		&& !(self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK_S)))
+	    lv = false;
+	lua_pushboolean(L, plvl >= lvl && lv && (self->get_type() & TYPE_MONSTER));
+	//////kdiy/////////
 	return 1;
 }
 LUA_FUNCTION(IsRankBelow) {
 	check_param_count(L, 2);
-	auto rnk = lua_get<uint32_t>(L, 2);
-	uint32_t prnk = self->get_rank();
-	lua_pushboolean(L, prnk > 0 && prnk <= rnk);
+	//////kdiy/////////
+	//auto rnk = lua_get<uint32_t>(L, 2);
+	auto rnk = lua_get<int32_t>(L, 2);
+	//uint32_t prnk = self->get_rank();
+	//lua_pushboolean(L, prnk > 0 && prnk <= rnk);
+	int32_t prnk = self->get_rank();
+	bool is_lv = !(self->data.type & (TYPE_XYZ | TYPE_LINK)) || ((self->data.type & TYPE_LINK) && !(self->data.type & TYPE_XYZ) && (self->is_affected_by_effect(EFFECT_LINK_LEVEL) || self->is_affected_by_effect(EFFECT_LINK_LEVEL_S)));
+	bool is_link = ((self->data.type & TYPE_LINK) && !(self->data.type & TYPE_XYZ)) || (!(self->data.type & (TYPE_XYZ | TYPE_LINK)) && (self->is_affected_by_effect(EFFECT_LEVEL_LINK) || self->is_affected_by_effect(EFFECT_LEVEL_LINK_S)));
+	bool lv = true;
+	if ( ((is_lv && !(self->is_affected_by_effect(EFFECT_LEVEL_RANK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_S)))
+	    || (is_link && !(self->is_affected_by_effect(EFFECT_LINK_RANK) || self->is_affected_by_effect(EFFECT_LINK_RANK_S))))
+		&& !(self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK_S)))
+	    lv = false;
+	lua_pushboolean(L, prnk <= rnk && lv && (self->get_type() & TYPE_MONSTER));
+	//////kdiy/////////
 	return 1;
 }
 LUA_FUNCTION(IsRankAbove) {
 	check_param_count(L, 2);
-	auto rnk = lua_get<uint32_t>(L, 2);
-	uint32_t prnk = self->get_rank();
-	lua_pushboolean(L, prnk > 0 && prnk >= rnk);
+	//////kdiy/////////
+	//auto rnk = lua_get<uint32_t>(L, 2);
+	auto rnk = lua_get<int32_t>(L, 2);
+	//uint32_t prnk = self->get_rank();
+	//lua_pushboolean(L, prnk > 0 && prnk >= rnk);
+	int32_t prnk = self->get_rank();
+	bool is_lv = !(self->data.type & (TYPE_XYZ | TYPE_LINK)) || ((self->data.type & TYPE_LINK) && !(self->data.type & TYPE_XYZ) && (self->is_affected_by_effect(EFFECT_LINK_LEVEL) || self->is_affected_by_effect(EFFECT_LINK_LEVEL_S)));
+	bool is_link = ((self->data.type & TYPE_LINK) && !(self->data.type & TYPE_XYZ)) || (!(self->data.type & (TYPE_XYZ | TYPE_LINK)) && (self->is_affected_by_effect(EFFECT_LEVEL_LINK) || self->is_affected_by_effect(EFFECT_LEVEL_LINK_S)));
+	bool lv = true;
+	if ( ((is_lv && !(self->is_affected_by_effect(EFFECT_LEVEL_RANK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_S)))
+	    || (is_link && !(self->is_affected_by_effect(EFFECT_LINK_RANK) || self->is_affected_by_effect(EFFECT_LINK_RANK_S))))
+		&& !(self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK_S)))
+	    lv = false;
+	lua_pushboolean(L, prnk >= rnk && lv && (self->get_type() & TYPE_MONSTER));
+	//////kdiy/////////
 	return 1;
 }
 LUA_FUNCTION(IsLinkBelow) {
 	check_param_count(L, 2);
-	auto lnk = lua_get<uint32_t>(L, 2);
-	uint32_t plnk = self->get_link();
-	lua_pushboolean(L, plnk > 0 && plnk <= lnk);
+	//////kdiy/////////
+	//auto lnk = lua_get<uint32_t>(L, 2);
+	auto lnk = lua_get<int32_t>(L, 2);
+	//kdiy////////
+	//uint32_t plnk = self->get_link();
+	int32_t plnk = self->get_link();
+	bool is_lv = !(self->data.type & (TYPE_XYZ | TYPE_LINK)) || ((self->data.type & TYPE_XYZ) && !(self->data.type & TYPE_LINK) && (self->is_affected_by_effect(EFFECT_RANK_LEVEL) || self->is_affected_by_effect(EFFECT_RANK_LEVEL_S)));
+	bool is_xyz = ((self->data.type & TYPE_XYZ) && !(self->data.type & TYPE_LINK)) || (!(self->data.type & (TYPE_XYZ | TYPE_LINK)) && (self->is_affected_by_effect(EFFECT_LEVEL_RANK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_S)));
+	bool lv = true;
+	if ( ((is_lv && !(self->is_affected_by_effect(EFFECT_LINK_LEVEL) || self->is_affected_by_effect(EFFECT_LINK_LEVEL_S)))
+	    || (is_xyz && !(self->is_affected_by_effect(EFFECT_RANK_LINK) || self->is_affected_by_effect(EFFECT_RANK_LINK_S))))
+		&& !(self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK_S)))
+	    lv = false;
+	//lua_pushboolean(L, plnk > 0 && plnk <= lnk);
+	lua_pushboolean(L, plnk <= lnk && lv && (self->get_type() & TYPE_MONSTER));
+	//kdiy////////
 	return 1;
 }
 LUA_FUNCTION(IsLinkAbove) {
 	check_param_count(L, 2);
-	auto lnk = lua_get<uint32_t>(L, 2);
-	uint32_t plnk = self->get_link();
-	lua_pushboolean(L, plnk > 0 && plnk >= lnk);
+	//////kdiy/////////
+	//auto lnk = lua_get<uint32_t>(L, 2);
+	auto lnk = lua_get<int32_t>(L, 2);
+	//uint32_t plnk = self->get_link();
+	int32_t plnk = self->get_link();
+	bool is_lv = !(self->data.type & (TYPE_XYZ | TYPE_LINK)) || ((self->data.type & TYPE_XYZ) && !(self->data.type & TYPE_LINK) && (self->is_affected_by_effect(EFFECT_RANK_LEVEL) || self->is_affected_by_effect(EFFECT_RANK_LEVEL_S)));
+	bool is_xyz = ((self->data.type & TYPE_XYZ) && !(self->data.type & TYPE_LINK)) || (!(self->data.type & (TYPE_XYZ | TYPE_LINK)) && (self->is_affected_by_effect(EFFECT_LEVEL_RANK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_S)));
+	bool lv = true;
+	if ( ((is_lv && !(self->is_affected_by_effect(EFFECT_LINK_LEVEL) || self->is_affected_by_effect(EFFECT_LINK_LEVEL_S)))
+	    || (is_xyz && !(self->is_affected_by_effect(EFFECT_RANK_LINK) || self->is_affected_by_effect(EFFECT_RANK_LINK_S))))
+		&& !(self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK) || self->is_affected_by_effect(EFFECT_LEVEL_RANK_LINK_S)))
+	    lv = false;	
+	//lua_pushboolean(L, plnk > 0 && plnk >= lnk);
+	lua_pushboolean(L, plnk >= lnk && lv && (self->get_type() & TYPE_MONSTER));
+	//kdiy////////
 	return 1;
 }
 LUA_FUNCTION(IsAttackBelow) {
@@ -1729,7 +2264,10 @@ LUA_FUNCTION(IsDefenseBelow) {
 	check_param_count(L, 2);
 	auto def = lua_get<int32_t>(L, 2);
 	if((self->data.type & TYPE_LINK)
-	   || (!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !(self->current.location & LOCATION_MZONE)))
+	//////kdiy/////////
+	//|| (!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !(self->current.location & LOCATION_MZONE)))
+	|| (!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !(((self->current.location & LOCATION_MZONE) && !self->is_affected_by_effect(EFFECT_SANCT_MZONE)) || ((self->current.location & LOCATION_SZONE) && self->is_affected_by_effect(EFFECT_ORICA_SZONE)))))
+	//////kdiy/////////
 		lua_pushboolean(L, 0);
 	else {
 		int32_t _def = self->get_defense();
@@ -1741,7 +2279,10 @@ LUA_FUNCTION(IsDefenseAbove) {
 	check_param_count(L, 2);
 	auto def = lua_get<int32_t>(L, 2);
 	if((self->data.type & TYPE_LINK)
-	   || (!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !self->is_affected_by_effect(EFFECT_PRE_MONSTER)))
+	//////kdiy/////////
+	//|| (!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !self->is_affected_by_effect(EFFECT_PRE_MONSTER)))
+	|| (!(self->data.type & TYPE_MONSTER) && !(self->get_type() & TYPE_MONSTER) && !(((self->current.location & LOCATION_MZONE) && !self->is_affected_by_effect(EFFECT_SANCT_MZONE)) || ((self->current.location & LOCATION_SZONE) && self->is_affected_by_effect(EFFECT_ORICA_SZONE)))))
+	//////kdiy/////////
 		lua_pushboolean(L, 0);
 	else {
 		lua_pushboolean(L, self->get_defense() >= def);
@@ -1836,7 +2377,10 @@ LUA_FUNCTION(EnableCounterPermit) {
 	if(lua_gettop(L) > 2)
 		prange = lua_get<uint16_t>(L, 3);
 	else if(self->data.type & TYPE_MONSTER)
-		prange = LOCATION_MZONE;
+		/////////kdiy//////////
+		//prange = LOCATION_MZONE;
+		prange = LOCATION_MZONE | LOCATION_SZONE;
+		/////////kdiy//////////
 	else
 		prange = LOCATION_SZONE | LOCATION_FZONE;
 	effect* peffect = pduel->new_effect();
