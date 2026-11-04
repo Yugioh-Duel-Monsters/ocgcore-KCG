@@ -70,6 +70,9 @@ struct chain {
 	uint32_t flag;
 	uint32_t event_id;
 	effect* triggering_effect;
+	////kdiy////
+	bool peffect_darkness{ false };
+	////kdiy////
 	owned_lua<group> target_cards;
 	effect* disable_reason;
 	applied_chain_counter_t* applied_chain_counters;
@@ -170,6 +173,10 @@ struct field_info {
 	uint8_t turn_player{ 0 };
 	uint8_t priorities[2]{ 0,0 };
 	bool can_shuffle{ true };
+	/////kdiy//////////
+	bool allplay_canbp{ true };
+	int playedcount[2]{ 0,0 };
+	/////kdiy//////////
 };
 struct lpcost {
 	int32_t count{ 0 };
@@ -310,6 +317,10 @@ struct processor {
 	card* attacker;
 	card* attack_target;
 	bool set_forced_attack;
+	//////kdiy//////////
+	bool mainphase_attack;
+	card_set effect_darkness;
+	//////kdiy//////////
 	card* forced_attacker;
 	card* forced_attack_target;
 	owned_lua<group> must_use_mats;
@@ -571,7 +582,10 @@ public:
 	void raise_event(card_set event_cards, uint32_t event_code, effect* reason_effect, uint32_t reason, uint8_t reason_player, uint8_t event_player, uint32_t event_value);
 	void raise_single_event(card* trigger_card, card_set* event_cards, uint32_t event_code, effect* reason_effect, uint32_t reason, uint8_t reason_player, uint8_t event_player, uint32_t event_value);
 	int32_t check_event(uint32_t code, tevent* pe = nullptr);
-	int32_t check_event_c(effect* peffect, uint8_t playerid, int32_t neglect_con, int32_t neglect_cost, int32_t copy_info, tevent* pe = nullptr);
+	/////kdiy///////////////
+	// int32_t check_event_c(effect* peffect, uint8_t playerid, int32_t neglect_con, int32_t neglect_cost, int32_t copy_info, tevent* pe = nullptr);
+	int32_t check_event_c(effect* peffect, uint8_t playerid, int32_t neglect_con, int32_t neglect_cost, int32_t copy_info, tevent* pe = nullptr, bool modify_eff = false);
+	/////kdiy///////////////
 	int32_t check_hint_timing(effect* peffect);
 	int32_t process_instant_event();
 	int32_t process_single_event();
@@ -637,7 +651,10 @@ public:
 	void release(card* target, effect* reason_effect, uint32_t reason, uint8_t reason_player);
 	void send_to(card_set targets, effect* reason_effect, uint32_t reason, uint8_t reason_player, uint8_t playerid, uint16_t destination, uint32_t sequence, uint8_t position, bool ignore = false);
 	void send_to(card* target, effect* reason_effect, uint32_t reason, uint8_t reason_player, uint8_t playerid, uint16_t destination, uint32_t sequence, uint8_t position, bool ignore = false);
-	void move_to_field(card* target, uint8_t move_player, uint8_t playerid, uint16_t destination, uint8_t positions, bool enable = false, uint8_t ret = 0, uint8_t zone = 0xff, bool rule = false, LOCATION_REASON reason = LOCATION_REASON::NONE, bool confirm = true);
+	///////kdiy///////
+	//void move_to_field(card* target, uint8_t move_player, uint8_t playerid, uint16_t destination, uint8_t positions, bool enable = false, uint8_t ret = 0, uint8_t zone = 0xff, bool rule = false, LOCATION_REASON reason = LOCATION_REASON::NONE, bool confirm = true);
+	void move_to_field(card* target, uint8_t move_player, uint8_t playerid, uint16_t destination, uint8_t positions, bool enable = false, uint8_t ret = 0, uint32_t zone = 0xff, bool rule = false, LOCATION_REASON reason = LOCATION_REASON::NONE, bool confirm = true);
+	///////kdiy///////
 	void change_position(card_set targets, effect* reason_effect, uint8_t reason_player, uint8_t au, uint8_t ad, uint8_t du, uint8_t dd, uint32_t flag, bool enable = false);
 	void change_position(card* target, effect* reason_effect, uint8_t reason_player, uint8_t npos, uint32_t flag, bool enable = false);
 	void operation_replace(uint32_t type, uint16_t step, group* targets);
