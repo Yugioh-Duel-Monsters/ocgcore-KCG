@@ -24,6 +24,9 @@ duel::duel(const OCG_DuelOptions& options, bool& valid_lua_lib) :
 		return;
 	game_field = new field(this, options);
 	game_field->temp_card = new_card(0);
+	/////zdiy/////
+	cards_data = (std::unordered_map<uint32_t, std::vector<void*>*>*)options.payload5;
+	/////zdiy/////
 }
 duel::~duel() {
 	for(auto& pcard : cards)
@@ -36,6 +39,13 @@ duel::~duel() {
 		delete peffect;
 	delete game_field;
 	delete lua;
+	/////zdiy/////
+	for (auto iter = cards_data->begin(); iter != cards_data->end(); iter++) {
+		delete (iter->second)->at(0);
+		delete iter->second;
+	}
+	delete cards_data;
+	/////zdiy/////
 	// TODO: this should actually be an assertion as no group should outlive the lua state
 	for(auto& pgroup : groups)
 		delete pgroup;
@@ -184,6 +194,9 @@ card_data::card_data(const OCG_CardData& data) {
 	COPY(lscale);
 	COPY(rscale);
 	COPY(link_marker);
+	////kdiy///////
+	COPY(ot);
+	////kdiy///////
 #undef COPY
 	if(data.setcodes == nullptr)
 		return;
