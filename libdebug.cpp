@@ -8,6 +8,9 @@
 #include "duel.h"
 #include "field.h"
 #include "scriptlib.h"
+/////kdiy//////////
+#include "effect.h"
+/////kdiy//////////
 
 #define LUA_MODULE Debug
 #include "function_array_helper.h"
@@ -126,9 +129,13 @@ LUA_STATIC_FUNCTION(PreEquip) {
 	check_param_count(L, 2);
 	auto equip_card = lua_get<card*, true>(L, 1);
 	auto target = lua_get<card*, true>(L, 2);
-	if((equip_card->current.location != LOCATION_SZONE)
-	   || (target->current.location != LOCATION_MZONE)
-	   || (target->current.position & POS_FACEDOWN))
+	/////////kdiy////////
+	//if((equip_card->current.location != LOCATION_SZONE)
+	if(!((equip_card->current.location == LOCATION_MZONE && equip_card->is_affected_by_effect(EFFECT_SANCT_MZONE)) || (equip_card->current.location == LOCATION_SZONE &&!equip_card->is_affected_by_effect(EFFECT_ORICA_SZONE)))    
+	    //|| (target->current.location != LOCATION_MZONE)
+	    || !((target->current.location == LOCATION_MZONE && !target->is_affected_by_effect(EFFECT_SANCT_MZONE)) || (target->current.location == LOCATION_SZONE &&target->is_affected_by_effect(EFFECT_ORICA_SZONE)))
+	/////////kdiy////////
+		|| (target->current.position & POS_FACEDOWN))
 		lua_pushboolean(L, 0);
 	else {
 		equip_card->equip(target, FALSE);
