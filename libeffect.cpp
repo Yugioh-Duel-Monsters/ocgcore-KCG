@@ -18,6 +18,20 @@ namespace LUA_NAMESPACE {
 
 using namespace scriptlib;
 
+//////kdiy//////////////////
+LUA_FUNCTION(SetOwner) {
+	check_param_count(L, 2);
+    auto pcard = lua_get<card*, true>(L, 2);
+	self->owner = pcard;
+	return 0;
+}
+LUA_FUNCTION(SetHandler) {
+	check_param_count(L, 2);
+    auto pcard = lua_get<card*, true>(L, 2);
+	self->handler = pcard;
+	return 0;
+}
+//////kdiy//////////////////
 LUA_STATIC_FUNCTION(CreateEffect) {
 	auto pcard = lua_get<card*, true>(L, 1);
 	effect* peffect = pduel->new_effect();
@@ -57,6 +71,15 @@ LUA_FUNCTION(GetFieldID) {
 LUA_FUNCTION(SetDescription) {
 	check_param_count(L, 2);
 	self->description = lua_get<uint64_t>(L, 2);
+    //kdiy////////
+    self->addtotext = lua_get<bool, false>(L, 3);
+    self->cardtext = lua_get<uint64_t, 0>(L, 4);
+    self->cardtext2 = lua_get<uint64_t, 0>(L, 5);
+    self->cardtext3 = lua_get<uint64_t, 0>(L, 6);
+    self->cardtext4 = lua_get<uint64_t, 0>(L, 7);
+    self->replacetext = lua_get<uint32_t, 0>(L, 8);
+    self->addtofront = lua_get<bool, false>(L, 9);
+    //kdiy////////
 	return 0;
 }
 LUA_FUNCTION(SetCode) {
